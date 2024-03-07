@@ -1,43 +1,45 @@
 FROM debian
 
-# Install pv and iproute2
-RUN apt-get update && apt-get install -y pv iproute2
-
-# Install necessary packages including Python3 and pip3
-RUN dpkg --add-architecture i386 && \
-    apt-get update && \
-    apt-get install -y \
-        python3 \
-        python3-pip \
-        python3-numpy \
-        wine \
-        qemu-kvm \
-        xz-utils \
+# Install necessary packages including Chrome Remote Desktop
+RUN apt-get update && apt-get install -y \
         curl \
-        firefox-esr \
-        gnome-system-monitor \
-        mate-system-monitor \
-        git \
-        xfce4 \
-        xfce4-terminal \
-        tightvncserver \
-        wget \
-        xrdp \
         dbus-x11 \
-        mate-desktop-environment-core \
-        net-tools && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        gnupg \
+        xdg-utils \
+        wget \
+        --no-install-recommends \
+    && curl -sS -o /tmp/chrome_remote_desktop.deb https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb \
+    && dpkg -i /tmp/chrome_remote_desktop.deb \
+    && apt-get install -f -y \
+    && rm /tmp/chrome_remote_desktop.deb \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Chrome Remote Desktop
+RUN mkdir -p /usr/local/share/desktop-session \
+    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+    && apt-get update && apt-get install -y \
+        google-chrome-stable \
+        --no-install-recommends \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && /opt/google/chrome-remote-desktop/setup --quiet --headless --pin=1234 \
+    && echo "exec /etc/X11/Xsession /usr/local/share/desktop-session/startup" > /etc/chrome-remote-desktop-session \
+    && chmod +x /etc/chrome-remote-desktop-session
 
 # Set up xrdp
-RUN echo "mate-session" > /etc/skel/.xsession && \
-    sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config && \
-    echo "xfce4-session" > /etc/skel/.xsession
+RUN apt-get update && apt-get install -y \
+        xrdp \
+        --no-install-recommends \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy Python script to container
-COPY get_info.py /
+# Expose xrdp port
+EXPOSE 3389
 
-# Start xrdp and run Python script to print IP address, username, and password
+# Start xrdp and Chrome Remote Desktop
 CMD ["sh", "-c", "set -eux; \
                   xrdp -n; \
-                  python3 /get_info.py"]
+                  sleep 10; \
+                  /usr/sbin/sshd -D"]
