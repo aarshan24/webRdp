@@ -1,45 +1,54 @@
+# Use the Debian base image
 FROM debian
 
-# Install necessary packages including Chrome Remote Desktop
+# Install dependencies
 RUN apt-get update && apt-get install -y \
-        curl \
-        dbus-x11 \
-        gnupg \
-        xdg-utils \
-        wget \
-        --no-install-recommends \
-    && curl -sS -o /tmp/chrome_remote_desktop.deb https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb \
-    && dpkg -i /tmp/chrome_remote_desktop.deb \
-    && apt-get install -f -y \
-    && rm /tmp/chrome_remote_desktop.deb \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg \
+    curl \
+    dbus-x11 \
+    xrdp
 
-# Set up Chrome Remote Desktop
-RUN mkdir -p /usr/local/share/desktop-session \
-    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-    && apt-get update && apt-get install -y \
-        google-chrome-stable \
-        --no-install-recommends \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && /opt/google/chrome-remote-desktop/setup --quiet --headless --pin=1234 \
-    && echo "exec /etc/X11/Xsession /usr/local/share/desktop-session/startup" > /etc/chrome-remote-desktop-session \
-    && chmod +x /etc/chrome-remote-desktop-session
+# Download and install Chrome Remote Desktop
+RUN wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb && \
+    dpkg -i chrome-remote-desktop_current_amd64.deb && \
+    apt-get install -f -y && \
+    rm chrome-remote-desktop_current_amd64.deb
+
+# Install pv and iproute2
+RUN apt-get install -y pv iproute2
+
+# Install necessary packages
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y \
+        python3 \
+        python3-pip \
+        python3-numpy \
+        wine \
+        qemu-kvm \
+        xz-utils \
+        firefox-esr \
+        gnome-system-monitor \
+        mate-system-monitor \
+        git \
+        xfce4 \
+        xfce4-terminal \
+        tightvncserver \
+        mate-desktop-environment-core \
+        net-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set up xrdp
-RUN apt-get update && apt-get install -y \
-        xrdp \
-        --no-install-recommends \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN echo "mate-session" > /etc/skel/.xsession && \
+    sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config && \
+    echo "xfce4-session" > /etc/skel/.xsession
 
-# Expose xrdp port
-EXPOSE 3389
+# Set environment variables
+ENV DISPLAY=
+ENV CRD_CODE="4/0AeaYSHDTj2cYdvkGNd6eyZSXNFSA-Xnc2IX_DOkG0N7JPCjIVNqwLFp6Fk2K_Pjoxjsfrw"
+ENV CRD_REDIRECT_URL="https://remotedesktop.google.com/_/oauthredirect"
 
-# Start xrdp and Chrome Remote Desktop
-CMD ["sh", "-c", "set -eux; \
-                  xrdp -n; \
-                  sleep 10; \
-                  /usr/sbin/sshd -D"]
+# Start Chrome Remote Desktop
+CMD ["/opt/google/chrome-remote-desktop/start-host", "--code=$CRD_CODE", "--redirect-url=$CRD_REDIRECT_URL"]
