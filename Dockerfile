@@ -1,7 +1,7 @@
 FROM debian
 
-# Install pv
-RUN apt-get update && apt-get install -y pv
+# Install pv and iproute2
+RUN apt-get update && apt-get install -y pv iproute2
 
 # Install necessary packages including Python
 RUN set -eux; \
