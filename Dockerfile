@@ -3,11 +3,12 @@ FROM debian
 # Install pv and iproute2
 RUN apt-get update && apt-get install -y pv iproute2
 
-# Install necessary packages including Python and numpy
+# Install necessary packages including Python3, pip3, and Flask
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y \
         python3 \
+        python3-pip \
         python3-numpy \
         wine \
         qemu-kvm \
@@ -33,7 +34,7 @@ RUN echo "mate-session" > /etc/skel/.xsession && \
     sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config && \
     echo "xfce4-session" > /etc/skel/.xsession
 
-# Install Python Flask for web server
+# Install Flask
 RUN pip3 install flask
 
 # Expose RDP and HTTP ports
