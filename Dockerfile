@@ -36,11 +36,10 @@ RUN echo "mate-session" > /etc/skel/.xsession && \
 # Expose RDP port
 EXPOSE 3389
 
-# Start xrdp with error handling and debug information
+# Copy Python script to container
+COPY get_info.py /
+
+# Start xrdp and run Python script to print IP address, username, and password
 CMD ["sh", "-c", "set -eux; \
                   xrdp -n; \
-                  ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'); \
-                  port=3389; \
-                  echo 'IP: ' $ip ':' $port; \
-                  echo 'Username: root'; \
-                  echo 'Password: root'"]
+                  python3 /get_info.py"]
