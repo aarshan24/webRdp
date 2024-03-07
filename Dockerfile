@@ -7,7 +7,10 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     curl \
     dbus-x11 \
-    xrdp
+    xrdp \
+    lsb-release \
+    apt-transport-https \
+    ca-certificates
 
 # Download and install Chrome Remote Desktop
 RUN wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb && \
