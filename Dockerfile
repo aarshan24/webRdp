@@ -1,9 +1,14 @@
 FROM debian
 
-# Install necessary packages
-RUN dpkg --add-architecture i386 \
-    && apt update \
-    && DEBIAN_FRONTEND=noninteractive apt install -y \
+# Install pv
+RUN apt-get update && apt-get install -y pv
+
+# Install necessary packages including Python
+RUN set -eux; \
+    dpkg --add-architecture i386; \
+    apt update; \
+    DEBIAN_FRONTEND=noninteractive apt install -y \
+        python3 \
         wine \
         qemu-kvm \
         xz-utils \
@@ -19,23 +24,31 @@ RUN dpkg --add-architecture i386 \
         xrdp \
         dbus-x11 \
         mate-desktop-environment-core \
-        net-tools
+        net-tools; \
+    apt clean; \
+    rm -rf /var/lib/apt/lists/*
 
-# Install noVNC
-RUN wget https://github.com/novnc/noVNC/archive/refs/tags/v1.2.0.tar.gz \
-    && tar -xvf v1.2.0.tar.gz
+# Install numpy
+RUN set -eux; \
+    apt update; \
+    DEBIAN_FRONTEND=noninteractive apt install -y python3-numpy; \
+    apt clean; \
+    rm -rf /var/lib/apt/lists/*
 
 # Set up xrdp
-RUN echo "mate-session" > /etc/skel/.xsession \
-    && sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config \
-    && echo "xfce4-session" > /etc/skel/.xsession
+RUN set -eux; \
+    echo "mate-session" > /etc/skel/.xsession; \
+    sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config; \
+    echo "xfce4-session" > /etc/skel/.xsession
 
 # Expose RDP port
 EXPOSE 3389
 
 # Start xrdp with error handling and debug information
-CMD ["sh", "-c", "set -e; \
+CMD ["sh", "-c", "set -eux; \
                   xrdp -n; \
-                  ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/' || echo 'Error retrieving IP address'; \
+                  ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'); \
+                  port=3389; \
+                  echo 'IP: ' $ip ':' $port; \
                   echo 'Username: root'; \
-                  echo 'Password: root'"]
+                  echo 'Password: root'" | pv -l -s 5
