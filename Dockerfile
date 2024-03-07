@@ -3,7 +3,7 @@ FROM debian
 # Install pv and iproute2
 RUN apt-get update && apt-get install -y pv iproute2
 
-# Install necessary packages including Python3, pip3, and Flask
+# Install necessary packages including Python3 and pip3
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y \
@@ -34,18 +34,10 @@ RUN echo "mate-session" > /etc/skel/.xsession && \
     sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config && \
     echo "xfce4-session" > /etc/skel/.xsession
 
-# Install Flask
-RUN pip3 install flask
-
-# Expose RDP and HTTP ports
-EXPOSE 3389 80
-
-# Copy Python script and HTML file to container
+# Copy Python script to container
 COPY get_info.py /
-COPY index.html /
 
 # Start xrdp and run Python script to print IP address, username, and password
 CMD ["sh", "-c", "set -eux; \
                   xrdp -n; \
-                  python3 /get_info.py & \
-                  flask run --host=0.0.0.0 --port=80"]
+                  python3 /get_info.py"]
