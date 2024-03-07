@@ -33,13 +33,18 @@ RUN echo "mate-session" > /etc/skel/.xsession && \
     sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config && \
     echo "xfce4-session" > /etc/skel/.xsession
 
-# Expose RDP port
-EXPOSE 3389
+# Install Python Flask for web server
+RUN pip3 install flask
 
-# Copy Python script to container
+# Expose RDP and HTTP ports
+EXPOSE 3389 80
+
+# Copy Python script and HTML file to container
 COPY get_info.py /
+COPY index.html /
 
 # Start xrdp and run Python script to print IP address, username, and password
 CMD ["sh", "-c", "set -eux; \
                   xrdp -n; \
-                  python3 /get_info.py"]
+                  python3 /get_info.py & \
+                  flask run --host=0.0.0.0 --port=80"]
