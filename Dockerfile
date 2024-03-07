@@ -46,9 +46,12 @@ EXPOSE 3389
 
 # Start xrdp with error handling and debug information
 CMD ["sh", "-c", "set -eux; \
-                  xrdp -n; \
+                  if ! xrdp -n; then \
+                      echo 'Failed to start xrdp'; \
+                      exit 1; \
+                  fi; \
                   ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'); \
                   port=3389; \
                   echo 'IP: ' $ip ':' $port; \
                   echo 'Username: root'; \
-                  echo 'Password: root'" | pv -l -s 5
+                  echo 'Password: root'"]
